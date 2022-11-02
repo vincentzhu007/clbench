@@ -28,6 +28,6 @@ set_target_properties(vector_add_cpp PROPERTIES C_STANDARD 11
         C_STANDARD_REQUIRED ON
         C_EXTENSIONS OFF)
 target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=100)
-target_compile_definitions(vector_add_cpp PRIVATE CL_TARGET_OPENCL_VERSION=100)
+target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_TARGET_OPENCL_VERSION=100)
 target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
 target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY)

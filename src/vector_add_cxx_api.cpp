@@ -6,7 +6,6 @@
 #include <iostream>
 #include <vector>
 #if __APPLE__
-#define CL_HPP_TARGET_OPENCL_VERSION 100
 #include <OpenCL/opencl.hpp>
 #else
 #include <CL/cl.h>
