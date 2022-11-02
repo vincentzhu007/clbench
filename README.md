@@ -1,8 +1,8 @@
-# clbench
+# CLBench
 
-OpenCL Benchmark工具集
+OpenCL Benchmark工具
 
-## 如何构建？
+## 1、源码编译
 
 ### Ubuntu 20.04
 
@@ -37,3 +37,6 @@ cd src
 
 如果用默认的AppleClang编译器可能会报错，建议使用`-DCMAKE_CXX_COMPILER`指定gnu编译器。
 
+## 2、TODO
+
+- OpenCL计算时延测量工具
