@@ -12,7 +12,7 @@ target_compile_definitions(hello_cl PRIVATE CL_TARGET_OPENCL_VERSION=100)
 
 
 add_executable(vector_add)
-target_sources(vector_add PRIVATE vector_add.cpp)
+target_sources(vector_add PRIVATE vector_add_c_api.cpp)
 target_link_libraries(vector_add PRIVATE OpenCL::OpenCL)
 
 set_target_properties(vector_add PROPERTIES C_STANDARD 11
@@ -21,10 +21,13 @@ set_target_properties(vector_add PROPERTIES C_STANDARD 11
 target_compile_definitions(vector_add PRIVATE CL_TARGET_OPENCL_VERSION=100)
 
 add_executable(vector_add_cpp)
-target_sources(vector_add_cpp PRIVATE vector_add_cxx.cpp)
+target_sources(vector_add_cpp PRIVATE vector_add_cxx_api.cpp)
 target_link_libraries(vector_add_cpp PRIVATE OpenCL::OpenCL)
 
 set_target_properties(vector_add_cpp PROPERTIES C_STANDARD 11
         C_STANDARD_REQUIRED ON
         C_EXTENSIONS OFF)
+target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=100)
 target_compile_definitions(vector_add_cpp PRIVATE CL_TARGET_OPENCL_VERSION=100)
+target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
+target_compile_definitions(vector_add_cpp PRIVATE CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY)

@@ -4,9 +4,13 @@
 
 #include <iostream>
 #include <cstdlib>
-#include <CL/cl.h>
 #include <fstream>
 #include <sstream>
+#if __APPLE__
+#include <OpenCL/opencl.h>
+#else
+#include <CL/cl.h>
+#endif
 
 using namespace std;
 
@@ -160,7 +164,7 @@ int main() {
     return EXIT_FAILURE;
   }
 
-  program = CreateProgram(context, device, "/home/zgd/src_code/clbench/src/vector_add.cl");
+  program = CreateProgram(context, device, "../../src/vector_add.cl");
   if (program == nullptr) {
     cerr << "Create program failed" << endl;
     Cleanup(context, command_queue, program, kernel, memObjects);
