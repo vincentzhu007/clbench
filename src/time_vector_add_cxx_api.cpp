@@ -14,7 +14,7 @@
 
 using namespace std;
 
-constexpr int VECTOR_SIZE = 100000;
+constexpr int VECTOR_SIZE = 10000;
 
 int main()
 {
