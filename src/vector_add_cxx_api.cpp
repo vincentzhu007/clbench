@@ -8,7 +8,7 @@
 #if __APPLE__
 #include <OpenCL/opencl.hpp>
 #else
-#include <CL/cl.h>
+#include <CL/cl2.hpp>
 #endif
 
 using namespace std;
