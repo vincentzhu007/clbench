@@ -46,3 +46,15 @@ target_compile_definitions(time_vector_add_cpp PRIVATE CL_HPP_MINIMUM_OPENCL_VER
 target_compile_definitions(time_vector_add_cpp PRIVATE CL_HPP_TARGET_OPENCL_VERSION=100)
 target_compile_definitions(time_vector_add_cpp PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
 target_compile_definitions(time_vector_add_cpp PRIVATE CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY)
+
+add_executable(opencl_offical_demo)
+target_sources(opencl_offical_demo PRIVATE opencl_offical_demo.cpp)
+target_link_libraries(opencl_offical_demo PRIVATE OpenCL::OpenCL)
+set_target_properties(opencl_offical_demo PROPERTIES C_STANDARD 11
+        C_STANDARD_REQUIRED ON
+        C_EXTENSIONS OFF)
+target_compile_definitions(opencl_offical_demo PRIVATE CL_TARGET_OPENCL_VERSION=100)
+target_compile_definitions(opencl_offical_demo PRIVATE CL_HPP_MINIMUM_OPENCL_VERSION=100)
+target_compile_definitions(opencl_offical_demo PRIVATE CL_HPP_TARGET_OPENCL_VERSION=100)
+target_compile_definitions(opencl_offical_demo PRIVATE CL_HPP_ENABLE_EXCEPTIONS)
+target_compile_definitions(opencl_offical_demo PRIVATE CL_HPP_ENABLE_PROGRAM_CONSTRUCTION_FROM_ARRAY_COMPATIBILITY)
