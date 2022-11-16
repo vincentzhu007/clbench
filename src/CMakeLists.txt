@@ -64,3 +64,10 @@ set_target_properties(image2d_filter PROPERTIES C_STANDARD 11
         C_EXTENSIONS OFF)
 configure_file(test.jpg ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 configure_file(Lenna.jpg ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
+
+add_executable(test_image2d_load_order)
+target_sources(test_image2d_load_order PRIVATE test_image2d_load_order.cpp)
+target_link_libraries(test_image2d_load_order PRIVATE OpenCL::OpenCL)
+set_target_properties(test_image2d_load_order PROPERTIES C_STANDARD 11
+        C_STANDARD_REQUIRED ON
+        C_EXTENSIONS OFF)

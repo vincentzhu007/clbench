@@ -16,81 +16,60 @@ using namespace std;
 
 constexpr int VECTOR_SIZE = 10000;
 
-//class ISimpleKernel {
-// public:
-//  void Run();
-//
-//};
-
 int main()
 {
-  // 定义kernel源码
+  // 预备材料1：定义kernel源码
   std::string kernel_source = R"(
-    #pragma OPENCL EXTENSION cl_khr_fp16 : enable
-
     __constant sampler_t smp_zero = CLK_NORMALIZED_COORDS_FALSE | CLK_ADDRESS_CLAMP | CLK_FILTER_NEAREST;
 
     __kernel void crop(__read_only image2d_t src_data, __write_only image2d_t dst_data,
                        int4 in_shape, int4 out_shape, int4 offset) {
-      int out_x = get_global_id(0);
-      int out_y = get_global_id(1);
+      int out_h = get_global_id(0);
+      int out_w = get_global_id(1);
 
-      int out_batch_idx = out_x / out_shape.y;
-      int out_height_idx = out_x % out_shape.y;
+
+      int out_batch_idx = out_h / out_shape.y;
+      int out_height_idx = out_h % out_shape.y;
       int in_batch_idx = out_batch_idx + offset.x;
       int in_height_idx = out_height_idx + offset.y;
-      int in_x = in_batch_idx * in_shape.y + in_height_idx;
+      int in_h = in_batch_idx * in_shape.y + in_height_idx;
 
-      int out_width_idx = out_y / out_shape.w;
-      int out_channel_idx = out_y % out_shape.w;
+      int out_width_idx = (out_w * 4) / out_shape.w;
+      int out_channel_idx = (out_w * 4) % out_shape.w;
       int in_width_idx = out_width_idx + offset.z;
       int in_channel_idx = out_channel_idx + offset.w;
-      int in_y = in_width_idx * in_shape.w + in_channel_idx;
+      int in_w = in_width_idx * in_shape.w + in_channel_idx;
 
-      float4 res = read_imagef(src_data, smp_zero, (int2)(in_x, in_y));
-      write_imagef(dst_data, (int2)(out_x, out_y), res);
+      printf("out_h:%d, out_w:%d -> out_b:%d,out_he:%d,in_b:%d,in_he:%d,in_h:%d -> out_w:%d,out_c:%d,in_w:%d,in_c:%d,in_w:%d\n",
+        out_h, out_w, out_batch_idx, out_height_idx, in_batch_idx, in_height_idx, in_h,
+        out_width_idx, out_channel_idx, in_width_idx, in_channel_idx, in_w);
+      printf("in_shape.x = %d\n", in_shape.x);
+      printf("in_shape.y = %d\n", in_shape.y);
+      printf("in_shape.z = %d\n", in_shape.z);
+      printf("in_shape.w = %d\n", in_shape.w);
+
+      float4 res = read_imagef(src_data, smp_zero, (int2)(in_w / 4, in_h));
+      write_imagef(dst_data, (int2)(out_w, out_h), res);
     }
   )";
 
   try {
-    auto t_start = Utils::GetNowUs();
-
+    // 1、查找平台和设备，创建上下文
     std::vector<cl::Platform> platformList;
     cl::Platform::get(&platformList);
-    auto t_1 = Utils::GetNowUs();
-    std::cout << "time(Platform): " << (t_1 - t_start) << " us" << std::endl;
 
     cl_context_properties context_properties[] = {
         CL_CONTEXT_PLATFORM,
         (cl_context_properties)(platformList[0])(),
         0
     };
-
     cl::Context context(CL_DEVICE_TYPE_GPU, context_properties);
-
-    auto t_2 = Utils::GetNowUs();
-    std::cout << "time(Context): " << (t_2 - t_1) << " us" << std::endl;
 
     std::vector<cl::Device> devices = context.getInfo<CL_CONTEXT_DEVICES>();
 
-    auto t_3 = Utils::GetNowUs();
-    std::cout << "time(Device): " << (t_3 - t_2) << " us" << std::endl;
-
-    cl::CommandQueue queue(context, devices[0], 0);
-
-    auto t_4 = Utils::GetNowUs();
-    std::cout << "time(CommandQueue): " << (t_4 - t_3) << " us" << std::endl;
-
-    cl::Program::Sources sources(1, std::make_pair(kernel_source, 0));
-
-    auto t_5 = Utils::GetNowUs();
-    std::cout << "time(Sources): " << (t_5 - t_4) << " us" << std::endl;
-
+    // 2、编译cl kernel程序
+    cl::Program::Sources sources(1, std::make_pair(kernel_source.c_str(), 0));
     cl::Program program(context, sources);
-
-    auto t_6 = Utils::GetNowUs();
-    std::cout << "time(Program): " << (t_6 - t_5) << " us" << std::endl;
-
     try {
       program.build(devices);
     } catch (cl::Error &e) {
@@ -100,52 +79,60 @@ int main()
       }
     }
 
+    // 3、设置kernel输入输出参数
+    float in_buffer[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15};
 
-    auto t_7 = Utils::GetNowUs();
-    std::cout << "time(build): " << (t_7 - t_6) << " us" << std::endl;
+    cl_int err_num = CL_SUCCESS;
+    cl::ImageFormat image_format;
+    image_format.image_channel_order = CL_RGBA;
+    image_format.image_channel_data_type = CL_FLOAT;
+    cl::Image2D in_image(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, // Create input image
+                         image_format, 2, 2, 0, in_buffer, &err_num);
+    if (err_num != CL_SUCCESS) {
+      std::cerr << "failed to create input image, err_num: " << err_num << std::endl;
+      return -1;
+    }
 
-    cl::Image2D src_image = cl::Image2D(context, )
+    size_t out_height = 1;
+    size_t out_width = 1;
+    cl::Image2D out_image(context, CL_MEM_WRITE_ONLY, // Create output image
+                          image_format, out_height, out_width, 0, nullptr, &err_num);
+    if (err_num != CL_SUCCESS) {
+      std::cerr << "failed to create output image, err_num: " << err_num << std::endl;
+      return -1;
+    }
 
-    cl::Buffer aBuffer = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, VECTOR_SIZE * sizeof(int), a);
-    cl::Buffer bBuffer = cl::Buffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, VECTOR_SIZE * sizeof(int), b);
-    cl::Buffer addResultBuffer = cl::Buffer(context, CL_MEM_READ_WRITE, VECTOR_SIZE * sizeof(int), nullptr);
-    cl::Buffer subResultBuffer = cl::Buffer(context, CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR, VECTOR_SIZE * sizeof(int), sub_result);
-
-    auto t_8 = Utils::GetNowUs();
-    std::cout << "time(Buffer): " << (t_8 - t_7) << " us" << std::endl;
-
+    // 4、执行kernel
+    cl::CommandQueue queue(context, devices[0], 0);
     cl::Kernel kernel(program, "crop");
 
-//    kernel.setArg(0, aBuffer);
-//    kernel.setArg(1, bBuffer);
-//    kernel.setArg(2, addResultBuffer);
-//    kernel.setArg(3, subResultBuffer);
-//
-//    auto t_9 = Utils::GetNowUs();
-//    std::cout << "time(Kernel): " << (t_9 - t_8) << " us" << std::endl;
-//
-//    cl::NDRange globalWorkSize(VECTOR_SIZE);
-//    queue.enqueueNDRangeKernel(kernel, cl::NullRange, globalWorkSize, cl::NullRange);
-//    queue.finish();
-//
-//    auto t_10 = Utils::GetNowUs();
-//    std::cout << "time(enqueueNDRangeKernel): " << (t_10 - t_9) << " us" << std::endl;
-//
-//    queue.enqueueReadBuffer(addResultBuffer, CL_TRUE, 0, VECTOR_SIZE * sizeof(int), add_result);
-//
-//    auto t_11 = Utils::GetNowUs();
-//    std::cout << "time(enqueueReadBuffer): " << (t_11 - t_10) << " us" << std::endl;
-//
-//    int *output = (int *)queue.enqueueMapBuffer(subResultBuffer, CL_TRUE, CL_MAP_READ,
-//                                                0, VECTOR_SIZE * sizeof(int));
-//
-//    auto t_12 = Utils::GetNowUs();
-//    std::cout << "time(enqueueMapBuffer): " << (t_12 - t_11) << " us" << std::endl;
-//
-//    cout << "executing kernel successfully." << endl;
-//    queue.enqueueUnmapMemObject(subResultBuffer, output);
+    cl_int4 out_shape = {1, 1, 1, 4};
+    cl_int4 in_shape = {1, 2, 2, 4};
+//    cl_int4 offset = {0, 0, 0, 0}; // out:[0, 1, 2, 3]
+//    cl_int4 offset = {0, 0, 1, 0}; // out:[4, 5, 6, 7]
+//    cl_int4 offset = {0, 1, 0, 0}; // out:[8, 9, 10, 11]
+    cl_int4 offset = {0, 1, 1, 0}; // out:[12, 13, 14, 15]
 
-//  } catch (cl::Error &e) {
-//    cerr << "catch cl error: " << e.what() << "(" << e.err() << ")" << endl;
-//  }
+    kernel.setArg(0, in_image);
+    kernel.setArg(1, out_image);
+    kernel.setArg(2, in_shape);
+    kernel.setArg(3, out_shape);
+    kernel.setArg(4, offset);
+
+    cl::NDRange globalWorkSize(out_height, out_width);
+    queue.enqueueNDRangeKernel(kernel, cl::NullRange, globalWorkSize, cl::NullRange);
+    queue.finish();
+
+    float *out_buffer = new float[out_width * out_height * 4];
+    queue.enqueueReadImage(out_image, CL_TRUE, {0, 0, 0}, {out_height, out_width, 1}, 0, 0, out_buffer);
+
+    for (int i = 0; i < out_width * out_height * 4; i++) {
+      std::cout << "out[" << i << "] = " << out_buffer[i] << std::endl;
+    }
+
+    cout << "executing kernel successfully." << endl;
+
+  } catch (cl::Error &e) {
+    cerr << "catch cl error: " << e.what() << "(" << e.err() << ")" << endl;
+  }
 }
